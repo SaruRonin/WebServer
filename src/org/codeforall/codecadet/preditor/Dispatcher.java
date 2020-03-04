@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Dispatcher implements Runnable {
     Socket clientSocket;
-    private static final List<String> TEXT_EXTENSIONS = Arrays.asList("txt", "html");
+    private static final List<String> TEXT_EXTENSIONS = Arrays.asList("txt", "html", "css");
     private static final List<String> IMAGE_EXTENSIONS = Arrays.asList("jpg", "png", "jpeg");
     private BufferedReader inputStream = null;
 
@@ -18,21 +18,16 @@ public class Dispatcher implements Runnable {
 
     @Override
     public void run() {
-        try {
-            inputStream = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         processRequest();
-
     }
 
 
     public void processRequest() {
 
-
         try {
+                inputStream = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
             String incomingHeader = inputStream.readLine();
             if (incomingHeader == null) {
                 return;
@@ -43,13 +38,36 @@ public class Dispatcher implements Runnable {
 
             handleRequest(file);
 
-
-
-
         }
         catch(IOException e){
             e.printStackTrace();
         }
+    }
+
+    public String makeHeader(File file) {
+        String header;
+        String code = "";
+        String type = "";
+        String[] typeArray = file.getName().split("\\.");
+        String extension = typeArray[1];
+
+        if (!file.exists()) {
+            code = "404 Not Found";
+            type = "text/html; charset=UTF-8";
+
+        }else if (TEXT_EXTENSIONS.contains(extension)) {
+            code = "200 Document Follows";
+            type = "text/html; charset=UTF-8";
+
+        } else if (IMAGE_EXTENSIONS.contains(extension)) {
+            code = "200 Document Follows";
+            type = "image/" + extension;
+        }
+        header = "HTTP/1.0 " + code + "\r\n" +
+                "Content-Type: " + type + "\r\n" +
+                "Content-Length: " + file.length() + " \r\n\r\n";
+
+        return header;
     }
 
     public void handleRequest(File file) {
@@ -77,36 +95,11 @@ public class Dispatcher implements Runnable {
             }
             outputStream.flush();
 
+            outputStream.close();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-    }
-
-    public String makeHeader(File file) {
-        String header;
-        String code = "";
-        String type = "";
-        String[] typeArray = file.getName().split("\\.");
-        String extension = typeArray[1];
-
-        if (!file.exists()) {
-            code = "404 Not Found";
-            type = "text/html; charset=UTF-8";
-
-        }else if (TEXT_EXTENSIONS.contains(extension)) {
-            code = "200 Document Follows";
-            type = "text/html; charset=UTF-8";
-
-        } else if (IMAGE_EXTENSIONS.contains(extension)) {
-            code = "200 Document Follows";
-            type = "image/" + extension;
-        }
-        header = "HTTP/1.0 " + code + "\r\n" +
-                "Content-Type: " + type + "\r\n" +
-                "Content-Length: " + file.length() + " \r\n\r\n";
-
-        return header;
     }
 }
 
